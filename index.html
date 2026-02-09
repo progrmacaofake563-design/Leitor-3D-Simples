@@ -44,7 +44,7 @@
             transition: --bg-c1 5s, --bg-c2 5s, --bg-c3 5s; 
         }
 
-        /* Registro de variáveis para transição suave (Chrome/Edge/Novos Safari) */
+        /* Registro de variáveis para transição suave */
         @property --bg-c1 { syntax: '<color>'; inherits: false; initial-value: #232526; }
         @property --bg-c2 { syntax: '<color>'; inherits: false; initial-value: #414345; }
         @property --bg-c3 { syntax: '<color>'; inherits: false; initial-value: #121212; }
@@ -55,11 +55,11 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* --- ZONAS DE CLIQUE (NOVIDADE) --- */
+        /* --- ZONAS DE CLIQUE --- */
         .click-zone {
             position: fixed; top: 0; height: 100%; width: 20%;
             z-index: 80; cursor: pointer;
-            display: none; /* Só aparecem ao ler */
+            display: none; 
             transition: background 0.3s;
         }
         .click-zone:hover { background: rgba(255,255,255,0.02); }
@@ -67,7 +67,6 @@
         .zone-left { left: 0; }
         .zone-right { right: 0; }
         
-        /* Indicador visual ao passar o mouse nas laterais */
         .zone-left::after, .zone-right::after {
             content: ''; position: absolute; top: 50%; 
             width: 20px; height: 20px; border-top: 2px solid rgba(255,255,255,0.3); border-left: 2px solid rgba(255,255,255,0.3);
@@ -75,10 +74,81 @@
         }
         .zone-left::after { left: 20px; }
         .zone-right::after { right: 20px; transform: translateY(-50%) rotate(135deg); }
-        
         .click-zone:hover::after { opacity: 1; }
 
         body.reading .click-zone { display: block; }
+
+        /* --- MAGIC ZONE (NOVIDADE: Botão Aleatório) --- */
+        .magic-zone {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 150px;
+            height: 150px;
+            z-index: 200; /* Acima das zonas de clique */
+            pointer-events: auto;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        /* O botão só aparece quando damos hover na zona mágica */
+        .btn-random-book {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            
+            /* Animação de entrada/saída */
+            opacity: 0;
+            transform: translateY(-20px) scale(0.9);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; /* Não clicável quando invisível */
+        }
+
+        .magic-zone:hover .btn-random-book {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: all;
+        }
+
+        .btn-random-book:hover {
+            background: white;
+            color: #333;
+            box-shadow: 0 8px 25px rgba(255,255,255,0.4);
+        }
+
+        .dice-icon {
+            animation: diceShake 0s;
+        }
+        .magic-zone:hover .dice-icon {
+            animation: diceShake 0.5s 0.2s;
+        }
+
+        @keyframes diceShake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            50% { transform: rotate(-15deg); }
+            75% { transform: rotate(5deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* Esconde o botão se estiver lendo (opcional, remova se quiser que apareça durante a leitura) */
+        body.reading .magic-zone { display: none; }
+
 
         /* --- UI Elements --- */
         .mood-indicator {
@@ -91,7 +161,8 @@
 
         .top-controls {
             position: fixed; top: 30px; width: 100%; padding: 0 40px; box-sizing: border-box;
-            display: flex; justify-content: space-between; pointer-events: none; z-index: 100;
+            display: flex; justify-content: flex-end; /* Ajustado para direita pois esquerda tem o botão novo */
+            pointer-events: none; z-index: 100;
         }
 
         .bottom-controls {
@@ -107,12 +178,13 @@
             display: flex; align-items: center; gap: 8px;
         }
         .btn-ui:hover { background: white; color: black; transform: scale(1.05); }
-        .btn-close { opacity: 0; transform: translateY(-20px); }
+        .btn-close { opacity: 0; transform: translateY(-20px); margin-left: auto; }
         body.reading .btn-close { opacity: 1; transform: translateY(0); }
 
         .btn-trash {
             width: 45px; height: 45px; padding: 0; background: rgba(255, 50, 50, 0.2); color: #ff6b6b;
             border-radius: 50%; display: none; justify-content: center; align-items: center; border-color: rgba(255, 50, 50, 0.3);
+            margin-left: 10px;
         }
         .btn-trash:hover { background: rgba(255, 50, 50, 0.8); color: white; transform: scale(1.1); }
 
@@ -195,9 +267,28 @@
         #file-input { display: none; }
         .hint { position: fixed; bottom: 30px; color: rgba(255,255,255,0.3); font-size: 13px; pointer-events: none; transition: opacity 0.5s; }
         .scene.open ~ .hint { opacity: 0; }
+        
+        /* Status msg para carregamento online */
+        #status-msg {
+            font-size: 10px; margin-top: 5px; opacity: 0.7; max-width: 200px;
+        }
     </style>
 </head>
 <body id="body">
+
+    <div class="magic-zone" title="Área mágica">
+        <div class="btn-random-book" onclick="loadRandomBook()">
+            <svg class="dice-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                <circle cx="7" cy="7" r="1.5" fill="currentColor"></circle>
+                <circle cx="17" cy="17" r="1.5" fill="currentColor"></circle>
+                <circle cx="17" cy="7" r="1.5" fill="currentColor"></circle>
+                <circle cx="7" cy="17" r="1.5" fill="currentColor"></circle>
+            </svg>
+            <span>Livro Surpresa</span>
+        </div>
+    </div>
 
     <div class="click-zone zone-left" onclick="prevPage()" title="Página Anterior"></div>
     <div class="click-zone zone-right" onclick="nextPage()" title="Próxima Página"></div>
@@ -244,13 +335,14 @@
                     <h1 style="margin:0; font-size:2.5rem; letter-spacing: 2px;">LIVRO</h1>
                     <p style="opacity:0.7; margin-top: 10px;">Clique para Abrir</p>
                     <div class="loader" id="loader"></div>
+                    <div id="status-msg"></div>
                 </div>
             </div>
         </div>
         <div id="reader-anchor"></div> 
     </div>
 
-    <div class="hint">Adicione um livro para ver o ambiente mudar</div>
+    <div class="hint">Adicione um livro ou clique no ícone surpresa no topo esquerdo</div>
 
     <script>
         // Elementos DOM
@@ -265,6 +357,7 @@
         const zoomSlider = document.getElementById('zoom-slider');
         const pageCounter = document.getElementById('page-counter');
         const moodText = document.getElementById('mood-text');
+        const statusMsg = document.getElementById('status-msg');
 
         let pageFlip = null;
         let isBookLoaded = false;
@@ -273,15 +366,69 @@
         let isAudioEnabled = true;
         let coverPalette = { c1: '#232526', c2: '#414345', c3: '#121212' };
 
-        // --- ÁUDIO CORRIGIDO ---
-        // Base64 curto de ruído branco/papel para garantir que carregue
-        // Em um app real, use um arquivo .mp3 hospedado
-        const soundBase64 = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgEBAQAAAAEBAQEBAQAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=="; 
+        // --- LISTA DE LIVROS PÚBLICOS (PDFs) ---
+        // Usando CorsProxy para evitar bloqueios em ambiente local
+        const corsProxy = "https://corsproxy.io/?"; 
         
-        // Criando o contexto de áudio de forma mais robusta
+        const publicBooks = [
+            { title: "Alice no País das Maravilhas", url: "https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf" },
+            { title: "Conto Clássico", url: "https://partners.adobe.com/public/developer/en/xml/AdobeXMLFormsSamples.pdf" },
+            { title: "A Metamorfose", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" } 
+            // Nota: Para produção, substitua por URLs reais de livros do Project Gutenberg ou Archive.org
+        ];
+
+        // Função para carregar livro aleatório
+        async function loadRandomBook() {
+            if(isReading) return;
+            
+            // UI Feedback
+            loader.style.display = 'block';
+            bookModel.classList.add('disabled');
+            statusMsg.innerText = "Buscando livro...";
+            
+            await hardReset();
+
+            try {
+                // Escolhe um livro
+                const randomBook = publicBooks[Math.floor(Math.random() * publicBooks.length)];
+                statusMsg.innerText = `Baixando: ${randomBook.title}...`;
+
+                // Fetch com proxy para evitar CORS
+                // Nota: Se usar URLs diretas que aceitam CORS, remova o corsProxy
+                const response = await fetch(corsProxy + encodeURIComponent(randomBook.url));
+                
+                if (!response.ok) throw new Error("Falha no download");
+                
+                const blob = await response.blob();
+                
+                // Converte blob para File para usar a lógica existente
+                const file = new File([blob], "random_book.pdf", { type: "application/pdf" });
+
+                // Reusa a lógica existente
+                await generateCoverAndColor(file);
+                createFreshStage();
+                await loadPDF(file);
+                
+                isBookLoaded = true; 
+                btnTrash.style.display = 'flex';
+                statusMsg.innerText = "";
+                
+                // Efeito visual de sucesso
+                bookModel.style.transform = "scale(1.05)"; 
+                setTimeout(() => bookModel.style.transform = "", 300);
+
+            } catch (error) {
+                console.error(error);
+                statusMsg.innerText = "Erro ao baixar. Tente novamente.";
+                setTimeout(() => trashBook(), 2000);
+            } finally {
+                loader.style.display = 'none'; 
+                bookModel.classList.remove('disabled');
+            }
+        }
+
+        // --- ÁUDIO ---
         const flipAudio = new Audio();
-        // Nota: Para um som de papel perfeito, substitua a string abaixo por um link real se preferir
-        // Usando um placeholder de "click" curto gerado para evitar erros de string longa
         flipAudio.src = "https://www.soundjay.com/office/sounds/paper-flip-1.mp3"; 
         flipAudio.volume = 0.5;
 
@@ -295,15 +442,13 @@
             love: { keywords: ['amor', 'beijo', 'paixão', 'coração', 'desejo', 'romance', 'doce', 'flor', 'carinho', 'abraço', 'te amo'], colors: ['#aa076b', '#61045f', '#ff9a9e'] }
         };
 
-        // --- FUNÇÕES DE NAVEGAÇÃO E SOM ---
         function prevPage() { if(pageFlip) pageFlip.flipPrev(); }
         function nextPage() { if(pageFlip) pageFlip.flipNext(); }
 
         function playFlipSound() {
             if(!isAudioEnabled) return;
-            // Reinicia o áudio para tocar rápido em cliques sucessivos
             flipAudio.currentTime = 0;
-            flipAudio.play().catch(e => console.log("Áudio bloqueado pelo navegador até interação"));
+            flipAudio.play().catch(e => console.log("Áudio pendente"));
         }
 
         function toggleAudio() {
@@ -312,7 +457,6 @@
             document.getElementById('icon-sound-off').style.display = isAudioEnabled ? 'none' : 'block';
         }
 
-        // --- CORES & AMBIENTE ---
         function applyGradient(c1, c2, c3, label) {
             const root = document.documentElement;
             root.style.setProperty('--bg-c1', c1);
@@ -348,28 +492,29 @@
             setAmbientColor('neutral');
         }
 
-        // --- CORE LOGIC ---
         async function generateCoverAndColor(file) {
             let coverUrl = null;
-            if (file.type === 'application/pdf') {
-                const buf = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(buf).promise;
-                const page = await pdf.getPage(1);
-                const vp = page.getViewport({ scale: 1.0 });
-                const cvs = document.createElement('canvas'); cvs.width = vp.width; cvs.height = vp.height;
-                await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
-                coverUrl = cvs.toDataURL();
-            } else {
-                const buf = await file.arrayBuffer();
-                const book = ePub(buf);
-                coverUrl = await book.coverUrl();
-            }
+            try {
+                if (file.type === 'application/pdf') {
+                    const buf = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(buf).promise;
+                    const page = await pdf.getPage(1);
+                    const vp = page.getViewport({ scale: 1.0 });
+                    const cvs = document.createElement('canvas'); cvs.width = vp.width; cvs.height = vp.height;
+                    await page.render({ canvasContext: cvs.getContext('2d'), viewport: vp }).promise;
+                    coverUrl = cvs.toDataURL();
+                } else {
+                    const buf = await file.arrayBuffer();
+                    const book = ePub(buf);
+                    coverUrl = await book.coverUrl();
+                }
 
-            if (coverUrl) {
-                frontCover.style.backgroundImage = `url(${coverUrl})`;
-                frontCover.classList.add('has-image');
-                extractPalette(coverUrl);
-            }
+                if (coverUrl) {
+                    frontCover.style.backgroundImage = `url(${coverUrl})`;
+                    frontCover.classList.add('has-image');
+                    extractPalette(coverUrl);
+                }
+            } catch(e) { console.warn("Não foi possível gerar capa", e); }
         }
 
         function extractPalette(src) {
@@ -453,6 +598,7 @@
             frontCover.style.backgroundImage = 'none'; frontCover.classList.remove('has-image');
             coverPalette = { c1: '#232526', c2: '#414345', c3: '#121212' };
             setAmbientColor('neutral'); isBookLoaded = false; zoomSlider.value = 1;
+            statusMsg.innerText = "";
         }
 
         function createFreshStage() {
@@ -468,7 +614,6 @@
             bookModel.style.transform = 'rotateX(0deg) rotateY(0deg)';
             scene.classList.remove('closed'); scene.classList.add('open');
             body.classList.add('reading');
-            // Tenta desbloquear o áudio no clique de abrir
             flipAudio.play().then(() => flipAudio.pause()).catch(() => {});
             setTimeout(() => { if (!pageFlip) initFlip(); }, 600);
         }
@@ -495,7 +640,7 @@
         async function loadPDF(file) {
             const buf = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(buf).promise;
-            const maxPages = Math.min(pdf.numPages, 40); 
+            const maxPages = Math.min(pdf.numPages, 30); // Limite de páginas para demo
             for(let i=1; i<=maxPages; i++){
                 const p = await pdf.getPage(i);
                 let pageText = ""; try { pageText = (await p.getTextContent()).items.slice(0, 40).map(i=>i.str).join(' '); } catch(e){}
